@@ -23,5 +23,6 @@ sudo usermod -aG video $USER
 sudo apt install xinput -y
 sudo apt install compton -y
 sudo apt install rofi -y
+sudo apt install blueman -y
 
 sudo iw reg set RO
