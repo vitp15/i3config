@@ -11,3 +11,6 @@
 - ls /sys/class/power_supply/ to see your battery values and update i3 configuration to use it and corectly display your battery
 - change ifname for starting hotspot at .config/polybar/scripts/hootspot-toogle.sh (nmcli device status - to see your ifname for hotspot)
 - also for hotspot tou can set your region with sudo iw reg set <RO for example> this will give you ability to use some channels like 149 (script already make this for RO region) to see all regions for 5G (take one that dont have "no IR" iw list to see all channels)
+
+
+- rofi -show drun: will show .desktop aplications, default is run not drun, some aplications you can find only with drun if they are only .desktop and arent exported in PATH
