@@ -29,6 +29,9 @@ sudo apt install android-studio -y
 sudo apt install snap -y
 sudo snap install figma-linux
 
+# dbeaver
+sudo snap install dbeaver-ce
+
 # docker install
 # Add Docker's official GPG key:
 sudo apt-get update -y

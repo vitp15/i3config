@@ -19,7 +19,9 @@ sudo apt install arandr -y
 sudo apt install pulseaudio pulseaudio-utils pavucontrol -y
 sudo apt install stalonetray -y
 sudo apt install brightnessctl -y
+sudo usermod -aG video $USER
 sudo apt install xinput -y
 sudo apt install compton -y
 sudo apt install rofi -y
 
+sudo iw reg set RO
