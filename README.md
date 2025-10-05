@@ -1,0 +1,3 @@
+- Check instructions for tmux from it's config file
+- use lxappearance to set gtk theme
+- use arandr to set monitor layout if needed
