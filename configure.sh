@@ -33,4 +33,10 @@ sudo make install
 cd ..
 sudo rm -r i3lock-fancy
 
+git clone https://github.com/lr-tech/rofi-themes-collection.git
+cd rofi-themes-collection
+cp themes/* ~/.local/share/rofi/themes/ -r
+cd ..
+sudo rm -r rofi-themes-collection
+
 sudo iw reg set RO

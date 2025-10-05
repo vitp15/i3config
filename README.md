@@ -1,5 +1,7 @@
 - Check instructions for tmux from it's config file
+- in .bashrc W in place of w in PS1 to dont show full path in terminal
 - use lxappearance to set gtk theme
+- rofi-theme-selector - to select theme (rounded-nord-dark for example and alt+a to save it)
 - change terminal transparency by its prefferenes
 - use arandr to set monitor layout if needed
 - create alias android-studio for android-studio to can be open (/opt/android-studio.bin/studio.sh)
