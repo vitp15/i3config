@@ -5,6 +5,6 @@ HOTSPOT_CONN=$(nmcli -t -f NAME,TYPE connection show --active | grep -E '^Hotspo
 if [ -n "$HOTSPOT_CONN" ]; then
     nmcli connection down "$HOTSPOT_CONN"
 else
-    nmcli device wifi hotspot ifname wlp3s0 ssid "Internet" password "qwer2341" band a channel 36
+    nmcli device wifi hotspot ifname wlp3s0 ssid "Hotspot" password "12345678" band a channel 36
 fi
 

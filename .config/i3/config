@@ -257,6 +257,7 @@ hide_edge_borders both
 
 # https://github.com/newmanls/rofi-themes-collection
 bindsym $mod+d exec rofi -show run
+bindsym $mod+Shift+d exec rofi -show drun
 # A more modern dmenu replacement is rofi:
 # bindcode $mod+40 exec "rofi -modi drun,run -show drun"
 # There also is i3-dmenu-desktop which only displays applications shipping a
