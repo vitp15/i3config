@@ -12,6 +12,6 @@ fi
 if [ -n "$HOTSPOT_CONN" ]; then
     nmcli connection down "$HOTSPOT_CONN"
 else
-    nmcli device wifi hotspot ifname wlp3s0 ssid "$HOTSPOT_NAME" password "$HOTSPOT_PASSWORD" band a channel 36
+    nmcli device wifi hotspot ifname wlp0s20f3 ssid "$HOTSPOT_NAME" password "$HOTSPOT_PASSWORD" band a channel 36
 fi
 
