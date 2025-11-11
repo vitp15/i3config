@@ -3,6 +3,7 @@
 - use lxappearance to set gtk theme
 - rofi-theme-selector - to select theme (rounded-nord-dark for example and alt+a to save it)
 - change terminal transparency by its prefferenes
+- For vs code import profile from .vs_workspaces (also enable autosave)
 - use arandr to set monitor layout if needed
 - reboot after instalations
 - xinput list to see your touchpad and mouse and change in i3/conf with yours

@@ -8,6 +8,7 @@ sudo apt install python3 -y
 sudo apt install python3-pip -y
 sudo apt install tmux -y
 sudo apt install software-properties-common apt-transport-https curl -y
+sudo apt install iw -y
 
 # google-chrome installation, and brave instalation
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb

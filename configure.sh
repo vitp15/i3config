@@ -8,6 +8,8 @@ cp -r .tmux/* ~/.tmux
 mkdir ~/wallpapers -p
 cp -r wallpapers/* ~/wallpapers
 cp .tmux.conf ~/.tmux.conf
+mkdir -p ~/.vs_workspaces
+cp -r .vs_workspaces/* ~/.vs_workspaces
 
 sudo apt update -y
 sudo apt upgrade -y
@@ -35,6 +37,7 @@ sudo rm -r i3lock-fancy
 
 git clone https://github.com/lr-tech/rofi-themes-collection.git
 cd rofi-themes-collection
+mkdir -p ~/.local/share/rofi/themes/
 cp themes/* ~/.local/share/rofi/themes/ -r
 cd ..
 sudo rm -r rofi-themes-collection
