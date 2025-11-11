@@ -298,7 +298,7 @@ bindsym control+MOD1+v exec "copyq menu"
 # Shortcuts for apps
 bindsym $mod+Control+f exec firefox
 bindsym $mod+Control+g exec google-chrome
-bindsym $mod+Control+d exec dbeaver
+bindsym $mod+Control+d exec dbeaver-ce
 bindsym $mod+Control+c exec code
 bindsym $mod+Control+n exec nautilus
 bindsym $mod+Control+b exec brave-browser
