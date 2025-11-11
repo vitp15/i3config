@@ -292,6 +292,9 @@ exec feh --bg-scale ~/wallpapers/abstract_math.jpeg
 # For screenshot
 bindsym $mod+Shift+s exec flameshot gui -c -p ~/Pictures/Screenshots
 
+# For CopyQ  control+alt+v
+bindsym control+MOD1+v exec "copyq menu"
+
 # Shortcuts for apps
 bindsym $mod+Control+f exec firefox
 bindsym $mod+Control+g exec google-chrome
@@ -306,4 +309,5 @@ exec i3-sensible-terminal
 exec code
 exec firefox
 exec compton
+exec --no-startup-id copyq
 exec_always --no-startup-id ~/.config/polybar/launch.sh

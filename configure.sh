@@ -26,6 +26,8 @@ sudo apt install xinput -y
 sudo apt install compton -y
 sudo apt install rofi -y
 sudo apt install blueman -y
+sudo apt install flameshot -y
+sudo apt install copyq -y
 
 sudo apt install imagemagick -y
 sudo apt install i3lock -y
