@@ -41,8 +41,8 @@ exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 exec --no-startup-id nm-applet
 
 # enable natural scrolling
-exec_always --no-startup-id xinput set-prop "ELAN1203:00 04F3:307A Touchpad" "libinput Natural Scrolling Enabled" 1
-exec_always --no-startup-id xinput set-prop "ELAN1203:00 04F3:307A Mouse" "libinput Natural Scrolling Enabled" 1
+exec_always --no-startup-id xinput set-prop "ELAN1200:00 04F3:309F Touchpad" "libinput Natural Scrolling Enabled" 1
+exec_always --no-startup-id xinput set-prop "ELAN1200:00 04F3:309F Mouse" "libinput Natural Scrolling Enabled" 1
 
 # Use pactl to adjust volume in PulseAudio.
 set $refresh_i3status killall -SIGUSR1 i3status
@@ -130,7 +130,7 @@ set $ws10 "10"
 # for class to know: xprop
 assign [class="Gnome-terminal"] $ws1
 assign [class="Code"] $ws2
-assign [class="Google-chrome"] $ws3
+assign [class="firefox_firefox"] $ws3
 assign [class="DBeaver"] $ws4
 assign [class="jetbrains-studio"] $ws5
 assign [class="figma-linux"] $ws6
@@ -241,6 +241,12 @@ hide_edge_borders both
 # monitor and workspace example
 # workspace $ws1 output DVI-I-2
 # ------------------------------
+bindsym $mod+Shift+m move workspace to output right
+workspace $ws1 output eDP-1
+workspace $ws1 output HDMI-1
+workspace $ws1 output HDMI-1
+workspace $ws4 output eDP-1
+workspace $ws5 output HDMI-1
 
 # Start i3bar to display a workspace bar (plus the system information i3status
 # finds out, if available)
@@ -281,15 +287,15 @@ bindsym XF87AudioNext exec playerctl next
 bindsym XF87AudioPrev exec playerctl previous
 
 # Set background image
-exec feh --bg-scale ~/wallpapers/background.jpg
+exec feh --bg-scale ~/wallpapers/abstract_math.jpeg
 
 # For screenshot
 bindsym $mod+Shift+s exec flameshot gui -c -p ~/Pictures/Screenshots
 
 # Shortcuts for apps
-bindsym $mod+Control+f exec figma-linux
+bindsym $mod+Control+f exec firefox
 bindsym $mod+Control+g exec google-chrome
-bindsym $mod+Control+d exec dbeaver-ce
+bindsym $mod+Control+d exec dbeaver
 bindsym $mod+Control+c exec code
 bindsym $mod+Control+n exec nautilus
 bindsym $mod+Control+b exec brave-browser
@@ -297,7 +303,7 @@ bindsym $mod+Control+a exec /opt/android-studio/bin/studio.sh
 
 # startup
 exec i3-sensible-terminal
-# exec code
-exec google-chrome
+exec code
+exec firefox
 exec compton
 exec_always --no-startup-id ~/.config/polybar/launch.sh
