@@ -21,6 +21,7 @@ sudo apt install brave-browser -y
 # install vs code and android studio
 curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -y
 sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" -y
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EB3E94ADBE1229CF
 sudo add-apt-repository ppa:maarten-fonville/android-studio -y
 sudo apt update -y
 sudo apt install code -y
@@ -28,6 +29,10 @@ sudo apt install android-studio -y
 
 sudo apt install snap -y
 sudo snap install figma-linux
+
+# nvm for code
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+source ~/.bashrc
 
 # dbeaver
 sudo snap install dbeaver-ce
