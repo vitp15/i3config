@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 HOTSPOT_CONN=$(nmcli -t -f NAME,TYPE connection show --active | grep -E '^Hotspot' | cut -d: -f1)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-if [ -f .env ]; then
-  export $(grep -Ev '^$|^#' .env)
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  export $(grep -Ev '^$|^#' "$SCRIPT_DIR/.env")
 else
   echo ".env file not found"
   exit 1
