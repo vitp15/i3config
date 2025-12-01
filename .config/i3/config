@@ -299,7 +299,7 @@ bindsym $mod+Control+b exec brave-browser
 bindsym $mod+Control+a exec /opt/android-studio/bin/studio.sh
 
 # startup
-# exec i3-sensible-terminal
+exec i3-sensible-terminal $ws1
 # exec code
 exec google-chrome
 exec compton
