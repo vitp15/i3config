@@ -128,7 +128,7 @@ set $ws9 "9"
 set $ws10 "10"
 
 # for class to know: xprop
-assign [class="Gnome-terminal"] $ws1
+# assign [class="Gnome-terminal"] $ws1
 assign [class="Code"] $ws2
 assign [class="Google-chrome"] $ws3
 assign [class="DBeaver"] $ws4
@@ -286,6 +286,9 @@ exec feh --bg-scale ~/wallpapers/background.jpg
 # For screenshot
 bindsym $mod+Shift+s exec flameshot gui -c -p ~/Pictures/Screenshots
 
+# For CopyQ  control+alt+v
+bindsym control+MOD1+v exec "copyq menu"
+
 # Shortcuts for apps
 bindsym $mod+Control+f exec figma-linux
 bindsym $mod+Control+g exec google-chrome
@@ -296,8 +299,9 @@ bindsym $mod+Control+b exec brave-browser
 bindsym $mod+Control+a exec /opt/android-studio/bin/studio.sh
 
 # startup
-exec i3-sensible-terminal
+# exec i3-sensible-terminal
 # exec code
 exec google-chrome
 exec compton
+exec --no-startup-id copyq
 exec_always --no-startup-id ~/.config/polybar/launch.sh
