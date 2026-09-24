@@ -184,7 +184,7 @@ bindsym $mod+c reload
 # restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
 bindsym $mod+Shift+r restart
 # exit i3 (logs you out of your X session)
-bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+bindsym $mod+Shift+e exec --no-startup-id ~/.config/i3/scripts/powermenu.sh
 
 # resize window (you can also use the mouse for that)
 mode "resize" {
@@ -296,7 +296,7 @@ bindsym $mod+Control+d exec dbeaver-ce
 bindsym $mod+Control+c exec code
 bindsym $mod+Control+n exec nautilus
 bindsym $mod+Control+b exec brave-browser
-bindsym $mod+Control+a exec /opt/android-studio/bin/studio.sh
+bindsym $mod+Control+a exec ~/.local/share/JetBrains/Toolbox/apps/android-studio/bin/studio.sh
 
 # startup
 exec i3-sensible-terminal $ws1
@@ -304,4 +304,5 @@ exec i3-sensible-terminal $ws1
 exec google-chrome
 exec compton
 exec --no-startup-id copyq
+exec xinput set-prop "ELAN1203:00 04F3:307A Touchpad" "libinput Tapping Enabled" 1
 exec_always --no-startup-id ~/.config/polybar/launch.sh
