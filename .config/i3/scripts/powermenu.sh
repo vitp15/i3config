@@ -8,7 +8,7 @@ logout=$'  Logout'
 restart=$'  Restart'
 shutdown=$'  Shutdown'
 
-choice=$(printf '%s\n' "$lock" "$sleep" "$hibernate" "$logout" "$restart" "$shutdown" \
+choice=$(printf '%s\n' "$shutdown" "$restart" "$sleep" "$hibernate" "$lock" "$logout" \
     | rofi -dmenu -i -p "Power" -lines 6)
 
 confirm() {
