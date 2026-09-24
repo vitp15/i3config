@@ -1,18 +1,28 @@
 #!/usr/bin/env bash
-# Meniu de power pentru i3 (rofi)
+# Meniu de power pentru i3 (rofi), iconite Font Awesome
 
-options="  Lock\n󰤄  Sleep\n󰍃  Logout\n  Restart\n  Shutdown"
+lock=$'  Lock'
+sleep=$'  Sleep'
+hibernate=$'  Hibernate'
+logout=$'  Logout'
+restart=$'  Restart'
+shutdown=$'  Shutdown'
 
-choice=$(echo -e "$options" | rofi -dmenu -i -p "Power" -lines 5)
+choice=$(printf '%s\n' "$lock" "$sleep" "$hibernate" "$logout" "$restart" "$shutdown" \
+    | rofi -dmenu -i -p "Power" -lines 6)
 
 confirm() {
-    [ "$(echo -e "Nu\nDa" | rofi -dmenu -i -p "$1?")" = "Da" ]
+    [ "$(printf 'Nu\nDa\n' | rofi -dmenu -i -p "$1?")" = "Da" ]
 }
 
 case "$choice" in
-    *Lock)     loginctl lock-session ;;
-    *Sleep)    systemctl suspend ;;
-    *Logout)   confirm "Logout" && i3-msg exit ;;
-    *Restart)  confirm "Restart" && systemctl reboot ;;
-    *Shutdown) confirm "Shutdown" && systemctl poweroff ;;
+    "$lock")      loginctl lock-session ;;
+    "$sleep")     systemctl suspend ;;
+    "$hibernate")
+        if ! err=$(systemctl hibernate 2>&1); then
+            rofi -e "Hibernate nu e configurat inca: $err"
+        fi ;;
+    "$logout")    confirm "Logout" && i3-msg exit ;;
+    "$restart")   confirm "Restart" && systemctl reboot ;;
+    "$shutdown")  confirm "Shutdown" && systemctl poweroff ;;
 esac
