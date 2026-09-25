@@ -13,10 +13,6 @@ shutdown=$'  Shutdown'
 choice=$(printf '%s\n' "$shutdown" "$restart" "$sleep" "$deep" "$sleephib" "$hibernate" "$lock" "$logout" \
     | rofi -dmenu -i -p "Power" -lines 8)
 
-confirm() {
-    [ "$(printf 'Nu\nDa\n' | rofi -dmenu -i -p "$1?")" = "Da" ]
-}
-
 run_or_err() {
     local name=$1; shift
     if ! err=$("$@" 2>&1); then
@@ -36,7 +32,7 @@ case "$choice" in
         fi ;;
     "$sleephib") run_or_err "Sleep → Hibernate" systemctl suspend-then-hibernate ;;
     "$hibernate") run_or_err "Hibernate" systemctl hibernate ;;
-    "$logout")    confirm "Logout" && i3-msg exit ;;
-    "$restart")   confirm "Restart" && systemctl reboot ;;
-    "$shutdown")  confirm "Shutdown" && systemctl poweroff ;;
+    "$logout")    i3-msg exit ;;
+    "$restart")   systemctl reboot ;;
+    "$shutdown")  systemctl poweroff ;;
 esac
