@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Meniu de power pentru i3 (rofi), iconite Font Awesome
 
-lock=$'  Lock'
-sleep=$'  Sleep'
-sleephib=$'  Sleep → Hibernate (2h)'
-hibernate=$'  Hibernate'
-logout=$'  Logout'
-restart=$'  Restart'
-shutdown=$'  Shutdown'
+lock=$'  Lock'
+sleep=$'  Sleep'
+sleephib=$'  Sleep → Hibernate (2h)'
+hibernate=$'  Hibernate'
+logout=$'  Logout'
+restart=$'  Restart'
+shutdown=$'  Shutdown'
 
 choice=$(printf '%s\n' "$shutdown" "$restart" "$sleep" "$sleephib" "$hibernate" "$lock" "$logout" \
     | rofi -dmenu -i -p "Power" -lines 7)
