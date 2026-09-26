@@ -5,9 +5,9 @@ YES_FLAG="$1"
 sudo apt update
 
 if [[ "$YES_FLAG" == "-y" ]]; then
-    sudo apt upgrade -y
+    sudo apt full-upgrade -y
 else
-    sudo apt upgrade
+    sudo apt full-upgrade
 fi
 
 if [[ "$YES_FLAG" == "-y" ]]; then
