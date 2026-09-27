@@ -1,7 +1,7 @@
 #!/bin/bash
 # Install the i3green GRUB theme. Run with sudo.
 #   sudo ./grub/install-grub-theme.sh            install / update
-#   sudo ./grub/install-grub-theme.sh --uninstall back to the plain menu
+#   sudo ./grub/install-grub-theme.sh --uninstall back to the stock Ubuntu menu
 set -e
 
 NAME=i3green
@@ -26,8 +26,12 @@ set_var() {
 [ -e "$CONF.bak-before-$NAME" ] || cp "$CONF" "$CONF.bak-before-$NAME"
 
 if [ "$1" = "--uninstall" ]; then
-    sed -i -E "s|^(GRUB_THEME=.*)|#\1|" "$CONF"
+    # Undo everything install touched: theme, forced resolution, kept payload.
+    sed -i -E '/^#?\s*GRUB_THEME=/d; /^GRUB_GFXPAYLOAD_LINUX=/d' "$CONF"
+    sed -i -E 's|^GRUB_GFXMODE=.*|#GRUB_GFXMODE=640x480|' "$CONF"
     rm -rf "$DEST"
+    # A forced power-off leaves recordfail=1, which makes the next menu wait 30 s.
+    grub-editenv /boot/grub/grubenv unset recordfail || true
 else
     rm -rf "$DEST"   # drop stale assets (old fonts etc.)
     mkdir -p "$DEST"
@@ -38,6 +42,8 @@ else
 fi
 
 update-grub
+echo
+grep -nE 'theme|gfxmode|gfxpayload|set timeout=' /boot/grub/grub.cfg | head -8
 echo
 echo "Windows entries in the menu: $(grep -ci "menuentry '.*windows" /boot/grub/grub.cfg)"
 echo "Done. Reboot to see it."
