@@ -23,7 +23,7 @@ set_var() {
     fi
 }
 
-cp -n "$CONF" "$CONF.bak-before-$NAME" || true
+[ -e "$CONF.bak-before-$NAME" ] || cp "$CONF" "$CONF.bak-before-$NAME"
 
 if [ "$1" = "--uninstall" ]; then
     sed -i -E "s|^(GRUB_THEME=.*)|#\1|" "$CONF"
