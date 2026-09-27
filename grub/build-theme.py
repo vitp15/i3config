@@ -10,6 +10,8 @@ import math
 import os
 import random
 import subprocess
+
+import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -37,100 +39,210 @@ def save(img, path):
 # Centered menu panel (theme.txt positions are derived from these)
 PX, PY, PW, PH = 570, 220, 780, 600
 
-
-def shard(d, cx, cy, ang, length, width, color):
-    """Thin triangle pointing along ang, base at (cx, cy)."""
-    dx, dy = math.cos(ang), math.sin(ang)
-    nx, ny = -dy, dx
-    tip = (cx + dx * length, cy + dy * length)
-    b1 = (cx + nx * width / 2, cy + ny * width / 2)
-    b2 = (cx - nx * width / 2, cy - ny * width / 2)
-    back = (cx - dx * length * 0.15, cy - dy * length * 0.15)
-    d.polygon([b1, tip, b2, back], fill=color)
+# --- background --------------------------------------------------------------
+# Rendered at 2x as float RGB (0..1) so light can be added, then downsampled.
+K = 2
+BW, BH = W * K, H * K
+CX, CY = BW / 2, BH / 2
 
 
-def shard_layer(rng, count, size, blur, alpha, green_ratio):
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    cx, cy = W / 2, H / 2
-    for _ in range(count):
-        a = rng.uniform(0, 2 * math.pi)
-        # keep the middle empty: radius in ellipse units, 0.7 .. 1.2
-        r = rng.uniform(0.7, 1.2)
-        x, y = cx + math.cos(a) * r * W * 0.55, cy + math.sin(a) * r * H * 0.62
-        ang = math.atan2(y - cy, x - cx) + rng.uniform(-0.5, 0.5)
-        if rng.random() < 0.5:
-            ang += math.pi                     # some point inwards
-        length = rng.uniform(0.3, 1.0) * size
-        width = rng.uniform(0.04, 0.16) * size
-        if rng.random() < green_ratio:
-            g = rng.choice([GREEN, (0x3C, 0xC8, 0x5A), (0x7E, 0xE0, 0x4A), DARK_GREEN])
-        else:
-            v = rng.randint(28, 70)
-            g = (v, v + 4, v + 2)
-        shard(d, x, y, ang, length, width, g + (int(alpha * rng.uniform(0.5, 1.0)),))
-    layer = layer.filter(ImageFilter.GaussianBlur(blur)) if blur else layer
-    # clear a soft margin around the panel so nothing pokes out from under it
-    keep = Image.new("L", (W, H), 255)
-    ImageDraw.Draw(keep).rounded_rectangle([PX - 50, PY - 50, PX + PW + 50, PY + PH + 90],
-                                           radius=60, fill=0)
-    keep = keep.filter(ImageFilter.GaussianBlur(25))
-    layer.putalpha(Image.composite(layer.getchannel("A"), Image.new("L", (W, H), 0), keep))
+def arr(img):
+    return np.asarray(img, dtype=np.float32) / 255.0
+
+
+def blur(img, r):
+    return img.filter(ImageFilter.GaussianBlur(r * K)) if r else img
+
+
+def over(canvas, layer):
+    """Alpha-composite an RGBA PIL layer onto the float canvas."""
+    a = arr(layer)
+    alpha = a[..., 3:4]
+    return canvas * (1 - alpha) + a[..., :3] * alpha
+
+
+def add(canvas, layer, gain=1.0):
+    """Additive light: RGBA layer, colour premultiplied by alpha."""
+    a = arr(layer)
+    return canvas + a[..., :3] * a[..., 3:4] * gain
+
+
+def panel_keep():
+    """1 outside the panel, 0 under it (soft), so nothing pokes out from beneath."""
+    keep = Image.new("L", (BW, BH), 255)
+    ImageDraw.Draw(keep).rounded_rectangle(
+        [(PX - 60) * K, (PY - 60) * K, (PX + PW + 60) * K, (PY + PH + 100) * K],
+        radius=70 * K, fill=0)
+    return blur(keep, 30)
+
+
+def masked(layer, keep):
+    layer.putalpha(Image.composite(layer.getchannel("A"), Image.new("L", layer.size, 0), keep))
     return layer
 
 
-def glow(img, x, y, radius, color, strength):
-    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(layer).ellipse([x - radius, y - radius, x + radius, y + radius],
-                                  fill=color + (strength,))
-    return Image.alpha_composite(img, layer.filter(ImageFilter.GaussianBlur(radius * 0.6)))
+def fog(rng):
+    """Low-frequency noise: gives the dark background some depth instead of a flat gradient."""
+    small = Image.fromarray((np.random.default_rng(rng.randint(0, 1 << 30))
+                             .random((27, 48)) * 255).astype(np.uint8), "L")
+    return arr(blur(small.resize((BW, BH), Image.BICUBIC), 40))[..., None]
+
+
+def place(rng, rmin, rmax):
+    """Random point in an elliptical ring around the centre (radii in ellipse units)."""
+    a = rng.uniform(0, 2 * math.pi)
+    r = rng.uniform(rmin, rmax)
+    return CX + math.cos(a) * r * BW * 0.5, CY + math.sin(a) * r * BH * 0.56
+
+
+def crystal(d, glow_d, x, y, size, rng, green, alpha):
+    """Two-facet shard flying away from the centre, lit from the centre."""
+    out = math.atan2(y - CY, x - CX)
+    ang = out + rng.gauss(0, 0.35)
+    length = size * rng.uniform(0.45, 1.0)
+    width = length * rng.uniform(0.08, 0.22)
+    dx, dy = math.cos(ang), math.sin(ang)
+    nx, ny = -dy, dx
+    back = (x - dx * length * 0.25, y - dy * length * 0.25)
+    tip = (x + dx * length, y + dy * length)
+    k1, k2 = rng.uniform(0.15, 0.45), rng.uniform(0.15, 0.45)
+    s1 = (x + dx * length * k1 + nx * width * rng.uniform(0.4, 0.6),
+          y + dy * length * k1 + ny * width * rng.uniform(0.4, 0.6))
+    s2 = (x + dx * length * k2 - nx * width * rng.uniform(0.4, 0.6),
+          y + dy * length * k2 - ny * width * rng.uniform(0.4, 0.6))
+
+    # facet facing the centre gets the light
+    to_c = (CX - x, CY - y)
+    lit_first = (nx * to_c[0] + ny * to_c[1]) > 0
+    if green:
+        base = np.array(rng.choice([(18, 149, 77), (46, 190, 90), (120, 220, 70), (11, 110, 50)]))
+    else:
+        v = rng.uniform(34, 78)
+        base = np.array((v, v * 1.06, v * 1.03))
+    light = tuple(int(c) for c in np.clip(base * 1.55 + 12, 0, 255))
+    dark = tuple(int(c) for c in np.clip(base * 0.55, 0, 255))
+    fa, fb = (light, dark) if lit_first else (dark, light)
+    d.polygon([back, s1, tip], fill=fa + (alpha,))
+    d.polygon([back, s2, tip], fill=fb + (alpha,))
+    # crisp highlight along the ridge and the lit edge
+    hi = tuple(int(c) for c in np.clip(base * 2.2 + 40, 0, 255)) + (int(alpha * 0.9),)
+    d.line([back, tip], fill=hi, width=max(1, int(K * 0.8)))
+    d.line([s1 if lit_first else s2, tip], fill=hi, width=max(1, int(K * 0.6)))
+    if green and glow_d is not None:
+        glow_d.polygon([back, s1, tip, s2], fill=tuple(int(c) for c in base) + (255,))
+    return back
+
+
+def shard_layers(rng, keep, count, size, rmin, rmax, green_ratio, alpha, depth_blur, trails):
+    layer = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    emit = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    trail = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    d, ed, td = ImageDraw.Draw(layer), ImageDraw.Draw(emit), ImageDraw.Draw(trail)
+    for _ in range(count):
+        x, y = place(rng, rmin, rmax)
+        green = rng.random() < green_ratio
+        back = crystal(d, ed, x, y, size * K, rng, green, int(alpha * rng.uniform(0.6, 1.0)))
+        if trails and rng.random() < 0.5:
+            # faint motion streak back towards the centre
+            t = rng.uniform(0.12, 0.3)
+            end = (back[0] + (CX - back[0]) * t, back[1] + (CY - back[1]) * t)
+            col = (90, 200, 110) if green else (110, 120, 115)
+            for i in range(6):
+                f0, f1 = i / 6, (i + 1) / 6
+                p0 = (back[0] + (end[0] - back[0]) * f0, back[1] + (end[1] - back[1]) * f0)
+                p1 = (back[0] + (end[0] - back[0]) * f1, back[1] + (end[1] - back[1]) * f1)
+                td.line([p0, p1], fill=col + (int(60 * (1 - f0)),), width=max(1, K))
+    return (masked(blur(layer, depth_blur), keep), masked(blur(emit, depth_blur), keep),
+            masked(blur(trail, 0.6), keep))
 
 
 def background():
     rng = random.Random(15)
+    keep = panel_keep()
+    yy, xx = np.mgrid[0:BH, 0:BW].astype(np.float32)
+    rad = np.sqrt(((xx - CX) / (BW * 0.5)) ** 2 + ((yy - CY) / (BH * 0.5)) ** 2)[..., None]
 
-    # radial base: dark green-black centre -> black edges
-    base = Image.new("L", (W, H))
-    bd = ImageDraw.Draw(base)
-    for i in range(60, 0, -1):
-        t = i / 60
-        bd.ellipse([W / 2 - t * W * 0.8, H / 2 - t * H * 0.8,
-                    W / 2 + t * W * 0.8, H / 2 + t * H * 0.8], fill=int(255 * (1 - t)))
-    base = base.filter(ImageFilter.GaussianBlur(40))
-    img = Image.composite(Image.new("RGBA", (W, H), (0x10, 0x1C, 0x16, 255)),
-                          Image.new("RGBA", (W, H), (0x02, 0x03, 0x03, 255)), base)
+    # base: deep green-black, brighter towards the centre, with foggy variation
+    canvas = np.array([0.012, 0.018, 0.016]) + np.array([0.05, 0.085, 0.065]) * np.clip(1.25 - rad, 0, 1) ** 1.6
+    canvas = canvas * (0.75 + 0.5 * fog(rng))
 
-    img = glow(img, W / 2, H / 2, 520, DARK_GREEN, 70)
-    img = glow(img, 260, 880, 220, GREEN, 60)
-    img = glow(img, 1680, 170, 180, GREEN, 50)
+    # soft green light behind the panel and in two corners
+    for gx, gy, gr, gs in [(CX, CY, 560, 0.10), (300 * K, 880 * K, 300, 0.30), (1650 * K, 180 * K, 260, 0.24)]:
+        g = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+        ImageDraw.Draw(g).ellipse([gx - gr * K, gy - gr * K, gx + gr * K, gy + gr * K],
+                                  fill=(18, 149, 77, 255))
+        canvas = add(canvas, blur(g, gr * 0.7), gs * 2.2)
 
-    img = Image.alpha_composite(img, shard_layer(rng, 240, 90, 6, 120, 0.25))   # far
-    img = Image.alpha_composite(img, shard_layer(rng, 140, 150, 2.5, 180, 0.3))  # mid
-    img = Image.alpha_composite(img, shard_layer(rng, 40, 260, 0.7, 225, 0.35))    # near
+    # light rays from the centre
+    rays = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(rays)
+    for _ in range(170):
+        a = rng.uniform(0, 2 * math.pi)
+        r0, r1 = rng.uniform(0.35, 0.6), rng.uniform(0.8, 1.6)
+        p0 = (CX + math.cos(a) * r0 * BW * 0.5, CY + math.sin(a) * r0 * BH * 0.56)
+        p1 = (CX + math.cos(a) * r1 * BW * 0.5, CY + math.sin(a) * r1 * BH * 0.56)
+        rd.line([p0, p1], fill=(40, 190, 100, rng.randint(10, 45)), width=rng.choice([1, 1, 2, 3]) * K)
+    canvas = add(canvas, masked(blur(rays, 1.2), keep), 0.9)
 
-    # a few bright sparks near the glows
-    for gx, gy in [(260, 880), (1680, 170)]:
-        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        d = ImageDraw.Draw(layer)
-        for _ in range(12):
-            x, y = gx + rng.gauss(0, 120), gy + rng.gauss(0, 90)
-            shard(d, x, y, rng.uniform(0, 2 * math.pi), rng.uniform(15, 50), rng.uniform(3, 7),
-                  (0xA8, 0xF0, 0x6A, 230))
-        img = Image.alpha_composite(img, layer.filter(ImageFilter.GaussianBlur(0.8)))
+    # bokeh and dust
+    bokeh = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(bokeh)
+    for _ in range(60):
+        x, y = place(rng, 0.6, 1.3)
+        r = rng.uniform(6, 30) * K
+        bd.ellipse([x - r, y - r, x + r, y + r], fill=(60, 200, 110, rng.randint(12, 40)),
+                   outline=(120, 230, 150, rng.randint(20, 60)), width=K)
+    canvas = add(canvas, masked(blur(bokeh, 3), keep), 1.0)
 
-    # frosted centred panel
-    blurred = img.crop((PX, PY, PX + PW, PY + PH)).filter(ImageFilter.GaussianBlur(22))
-    img.paste(blurred, (PX, PY))
-    over = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    od = ImageDraw.Draw(over)
-    od.rounded_rectangle([PX, PY, PX + PW, PY + PH], radius=24, fill=PANEL + (200,),
-                         outline=GREEN + (130,), width=2)
-    od.rectangle([W // 2 - 45, PY + 105, W // 2 + 45, PY + 109], fill=GREEN + (255,))
-    img = Image.alpha_composite(img, over)
+    # three depth layers of crystals: far (soft, dim), mid, near (sharp, big)
+    for count, size, rmin, rmax, gr, al, db, tr in [
+        (260, 60, 0.62, 1.35, 0.22, 150, 3.0, False),
+        (150, 120, 0.68, 1.3, 0.28, 215, 1.0, True),
+        (38, 260, 0.78, 1.25, 0.32, 245, 0, True),
+    ]:
+        body, emit, trail = shard_layers(rng, keep, count, size, rmin, rmax, gr, al, db, tr)
+        canvas = add(canvas, trail, 0.8)
+        canvas = over(canvas, body)
+        # bloom around the green crystals
+        canvas = add(canvas, blur(emit, 6), 0.35)
+        canvas = add(canvas, blur(emit, 22), 0.25)
+
+    # glowing sparks
+    dust = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    dd = ImageDraw.Draw(dust)
+    for _ in range(420):
+        x, y = place(rng, 0.5, 1.4)
+        r = rng.choice([0.6, 0.8, 1.0, 1.5, 2.2]) * K
+        dd.ellipse([x - r, y - r, x + r, y + r], fill=(170, 255, 150, rng.randint(60, 220)))
+    dust = masked(dust, keep)
+    canvas = add(canvas, blur(dust, 0.4), 1.0)
+    canvas = add(canvas, blur(dust, 4), 0.8)
+
+    # vignette
+    canvas *= np.clip(1.15 - 0.35 * rad ** 2, 0.35, 1.0)
+
+    # soft green halo around the panel edge
+    halo = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    ImageDraw.Draw(halo).rounded_rectangle(
+        [PX * K, PY * K, (PX + PW) * K, (PY + PH) * K], radius=24 * K,
+        outline=(18, 149, 77, 255), width=6 * K)
+    canvas = add(canvas, blur(halo, 18), 0.35)
+
+    img = Image.fromarray((np.clip(canvas, 0, 1) * 255).astype(np.uint8), "RGB").convert("RGBA")
+
+    # frosted centred panel (drawn at 2x for smooth corners)
+    box = (PX * K, PY * K, (PX + PW) * K, (PY + PH) * K)
+    img.paste(blur(img.crop(box), 22), box[:2])
+    ov = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
+    od = ImageDraw.Draw(ov)
+    od.rounded_rectangle(box, radius=24 * K, fill=PANEL + (205,), outline=GREEN + (140,), width=2 * K)
+    od.rectangle([(W // 2 - 45) * K, (PY + 105) * K, (W // 2 + 45) * K, (PY + 109) * K],
+                 fill=GREEN + (255,))
+    img = Image.alpha_composite(img, ov).resize((W, H), Image.LANCZOS)
 
     # fine grain against banding in the dark gradients
     noise = Image.effect_noise((W, H), 12).convert("RGBA")
-    noise.putalpha(10)
+    noise.putalpha(9)
     img = Image.alpha_composite(img, noise)
     save(img.convert("RGB"), os.path.join(OUT, "background.png"))
 
