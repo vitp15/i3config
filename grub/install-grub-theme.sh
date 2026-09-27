@@ -29,6 +29,7 @@ if [ "$1" = "--uninstall" ]; then
     sed -i -E "s|^(GRUB_THEME=.*)|#\1|" "$CONF"
     rm -rf "$DEST"
 else
+    rm -rf "$DEST"   # drop stale assets (old fonts etc.)
     mkdir -p "$DEST"
     cp -r "$SRC"/. "$DEST"/
     set_var GRUB_THEME "$DEST/theme.txt"

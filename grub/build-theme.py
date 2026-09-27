@@ -24,7 +24,7 @@ GREEN = (0x12, 0x95, 0x4D)
 DARK_GREEN = (0x0B, 0x59, 0x2E)
 PANEL = (0x0E, 0x14, 0x11)
 
-ICON = 40          # must equal icon_width/icon_height in theme.txt
+ICON = 24          # must equal icon_width/icon_height in theme.txt
 SS = 4             # supersampling for smooth shapes
 
 FONT_REG = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -36,8 +36,10 @@ def save(img, path):
     img.save(path, "PNG", optimize=True)  # PIL never writes interlaced PNGs
 
 
-# Centered menu panel (theme.txt positions are derived from these)
-PX, PY, PW, PH = 570, 220, 780, 600
+# Clear area in the middle kept free of shards (title + menu sit here).
+# Nothing panel-like is baked into the background: it would stay on screen
+# after the menu closes.
+PX, PY, PW, PH = 620, 290, 680, 500
 
 # --- background --------------------------------------------------------------
 # Rendered at 2x as float RGB (0..1) so light can be added, then downsampled.
@@ -221,24 +223,8 @@ def background():
     # vignette
     canvas *= np.clip(1.15 - 0.35 * rad ** 2, 0.35, 1.0)
 
-    # soft green halo around the panel edge
-    halo = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
-    ImageDraw.Draw(halo).rounded_rectangle(
-        [PX * K, PY * K, (PX + PW) * K, (PY + PH) * K], radius=24 * K,
-        outline=(18, 149, 77, 255), width=6 * K)
-    canvas = add(canvas, blur(halo, 18), 0.35)
-
     img = Image.fromarray((np.clip(canvas, 0, 1) * 255).astype(np.uint8), "RGB").convert("RGBA")
-
-    # frosted centred panel (drawn at 2x for smooth corners)
-    box = (PX * K, PY * K, (PX + PW) * K, (PY + PH) * K)
-    img.paste(blur(img.crop(box), 22), box[:2])
-    ov = Image.new("RGBA", (BW, BH), (0, 0, 0, 0))
-    od = ImageDraw.Draw(ov)
-    od.rounded_rectangle(box, radius=24 * K, fill=PANEL + (205,), outline=GREEN + (140,), width=2 * K)
-    od.rectangle([(W // 2 - 45) * K, (PY + 105) * K, (W // 2 + 45) * K, (PY + 109) * K],
-                 fill=GREEN + (255,))
-    img = Image.alpha_composite(img, ov).resize((W, H), Image.LANCZOS)
+    img = img.resize((W, H), Image.LANCZOS)
 
     # fine grain against banding in the dark gradients
     noise = Image.effect_noise((W, H), 12).convert("RGBA")
@@ -249,12 +235,12 @@ def background():
 
 def selection():
     """9-slice rounded highlight bar: select_{nw,n,ne,w,c,e,sw,s,se}.png"""
-    r = 12
+    r = 6          # slice size; theme.txt item_padding must be >= this
     size = r * 2 + 4
     big = Image.new("RGBA", (size * SS, size * SS), (0, 0, 0, 0))
     ImageDraw.Draw(big).rounded_rectangle(
         [0, 0, size * SS - 1, size * SS - 1], radius=r * SS,
-        fill=DARK_GREEN + (230,), outline=GREEN + (255,), width=2 * SS)
+        fill=DARK_GREEN + (200,), outline=GREEN + (255,), width=1 * SS)
     bar = big.resize((size, size), Image.LANCZOS)
     m = size - r
     boxes = {
@@ -264,6 +250,18 @@ def selection():
     }
     for name, box in boxes.items():
         save(bar.crop(box), os.path.join(OUT, f"select_{name}.png"))
+
+
+def accent():
+    """Short green line under the title (an image component, gone with the menu)."""
+    save(Image.new("RGBA", (60, 3), GREEN + (255,)), os.path.join(OUT, "accent.png"))
+
+
+def terminal_box():
+    """Flat near-black box behind the terminal (full screen): when the menu closes
+    to boot, the screen goes plain dark instead of showing a framed square."""
+    for name in ("nw", "n", "ne", "w", "c", "e", "sw", "s", "se"):
+        save(Image.new("RGB", (4, 4), (0x05, 0x08, 0x07)), os.path.join(OUT, f"term_{name}.png"))
 
 
 def icon_canvas():
@@ -277,12 +275,14 @@ def finish(img, *names):
 
 
 def icons():
+    # shapes are designed on a 40px grid; U scales them to ICON
     S = ICON * SS
+    U = SS * ICON / 40
     white = (0xF3, 0xF4, 0xF5, 255)
 
     # Windows: four panes
     img = icon_canvas(); d = ImageDraw.Draw(img)
-    g, pad = 3 * SS, 4 * SS
+    g, pad = round(3 * U), round(3 * U)
     half = (S - 2 * pad - g) // 2
     for i in range(2):
         for j in range(2):
@@ -292,12 +292,12 @@ def icons():
 
     # Ubuntu / Linux: terminal prompt in a rounded square
     img = icon_canvas(); d = ImageDraw.Draw(img)
-    d.rounded_rectangle([2 * SS, 4 * SS, S - 2 * SS, S - 4 * SS], radius=6 * SS,
-                        fill=(0x14, 0x1C, 0x18, 255), outline=GREEN + (255,), width=3 * SS)
-    lw = 4 * SS
-    d.line([(10 * SS, 13 * SS), (18 * SS, 20 * SS), (10 * SS, 27 * SS)], fill=GREEN + (255,),
+    d.rounded_rectangle([2 * U, 4 * U, S - 2 * U, S - 4 * U], radius=6 * U,
+                        fill=(0x14, 0x1C, 0x18, 255), outline=GREEN + (255,), width=round(3 * U))
+    lw = round(4 * U)
+    d.line([(10 * U, 13 * U), (18 * U, 20 * U), (10 * U, 27 * U)], fill=GREEN + (255,),
            width=lw, joint="curve")
-    d.line([(21 * SS, 27 * SS), (30 * SS, 27 * SS)], fill=white, width=lw)
+    d.line([(21 * U, 27 * U), (30 * U, 27 * U)], fill=white, width=lw)
     finish(img, "ubuntu", "gnu-linux", "linux")
 
     # Recovery / memtest / generic: circle with a wrench-ish mark -> keep it simple: gear
@@ -305,21 +305,21 @@ def icons():
     c = S // 2
     for k in range(8):
         a = k * math.pi / 4
-        x, y = c + math.cos(a) * 14 * SS, c + math.sin(a) * 14 * SS
-        d.ellipse([x - 4 * SS, y - 4 * SS, x + 4 * SS, y + 4 * SS], fill=(0x9A, 0xA3, 0x9F, 255))
-    d.ellipse([c - 13 * SS, c - 13 * SS, c + 13 * SS, c + 13 * SS], fill=(0x9A, 0xA3, 0x9F, 255))
-    d.ellipse([c - 6 * SS, c - 6 * SS, c + 6 * SS, c + 6 * SS], fill=(0, 0, 0, 0))
+        x, y = c + math.cos(a) * 14 * U, c + math.sin(a) * 14 * U
+        d.ellipse([x - 4 * U, y - 4 * U, x + 4 * U, y + 4 * U], fill=(0x9A, 0xA3, 0x9F, 255))
+    d.ellipse([c - 13 * U, c - 13 * U, c + 13 * U, c + 13 * U], fill=(0x9A, 0xA3, 0x9F, 255))
+    d.ellipse([c - 6 * U, c - 6 * U, c + 6 * U, c + 6 * U], fill=(0, 0, 0, 0))
     finish(img, "os", "recovery", "memtest", "efi")
 
 
 def fonts():
     """grub-mkfont -> .pf2 in the theme root (00_header loadfont's every *.pf2 there)."""
     specs = [
-        (FONT_REG, 24, "dejavu_24"),
-        (FONT_BOLD, 24, "dejavu_bold_24"),
-        (FONT_BOLD, 40, "dejavu_bold_40"),
         (FONT_REG, 18, "dejavu_18"),
-        (FONT_MONO, 18, "dejavu_mono_18"),
+        (FONT_BOLD, 28, "dejavu_bold_28"),
+        (FONT_REG, 16, "dejavu_16"),
+        (FONT_REG, 14, "dejavu_14"),
+        (FONT_MONO, 16, "dejavu_mono_16"),
     ]
     for ttf, size, name in specs:
         subprocess.run(["grub-mkfont", "-s", str(size), "-r", "0x20-0x24F,0x2000-0x206F,0x2190-0x21FF,0x25A0-0x25FF", "-o",
@@ -330,6 +330,8 @@ if __name__ == "__main__":
     os.makedirs(ICONS, exist_ok=True)
     background()
     selection()
+    accent()
+    terminal_box()
     icons()
     fonts()
     print("theme assets written to", OUT)
