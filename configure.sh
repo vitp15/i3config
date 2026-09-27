@@ -41,3 +41,5 @@ cd ..
 sudo rm -r rofi-themes-collection
 
 sudo iw reg set RO
+
+sudo ./grub/install-grub-theme.sh
